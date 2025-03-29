@@ -2,7 +2,7 @@ import { RadioGroupProps } from '../types';
 
 export function RadioGroup({ value, onChange, options }: RadioGroupProps) {
   return (
-    <div className="space-y-3">
+    <div className="space-y-2">
       {options.map((option) => (
         <div key={option.value} className="flex items-center space-x-3">
           <input
@@ -14,7 +14,7 @@ export function RadioGroup({ value, onChange, options }: RadioGroupProps) {
             onChange={(e) => onChange(e.target.value)}
             className="h-4 w-4 text-blue-600 focus:ring-2 focus:ring-blue-500"
           />
-          <label htmlFor={`radio-${option.value}`} className="text-base text-gray-900">
+          <label htmlFor={`radio-${option.value}`} className="text-sm text-gray-900">
             {option.label}
           </label>
         </div>

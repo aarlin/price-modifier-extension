@@ -9,12 +9,12 @@ chrome.runtime.onInstalled.addListener(() => {
         percentage: 0,
         showIndicator: true,
         matrixRates: {
-          '0-10': 5,
-          '11-20': 10,
-          '21-30': 15,
-          '31-40': 20,
-          '41-50': 25,
-          '51+': 30,
+          '0-50.00': 5,
+          '50.01-100.00': 10,
+          '100.01-250.00': 15,
+          '250.10-500.00': 20,
+          '500.01-1000.00': 25,
+          '1000.01-': 30,
         },
       };
       chrome.storage.sync.set({ settings: defaultSettings });

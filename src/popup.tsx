@@ -14,12 +14,12 @@ function Popup() {
     percentage: 0,
     showIndicator: true,
     matrixRates: {
-      '0-10': 5,
-      '11-20': 10,
-      '21-30': 15,
-      '31-40': 20,
-      '41-50': 25,
-      '51+': 30,
+      '0-50.00': 5,
+      '50.01-100.00': 10,
+      '100.01-250.00': 15,
+      '250.10-500.00': 20,
+      '500.01-1000.00': 25,
+      '1000.01-': 30,
     },
   });
   const [showReloadButton, setShowReloadButton] = useState(false);
@@ -37,15 +37,17 @@ function Popup() {
   const handleSettingChange = async (newSettings: Partial<Settings>) => {
     const updatedSettings = { ...settings, ...newSettings };
     setSettings(updatedSettings);
-    
+
     // Save settings immediately
     await chrome.storage.sync.set({ settings: updatedSettings });
-    
+
     // Show reload button if rates have changed
     if (lastSavedSettings && (
       newSettings.flatRate !== undefined && newSettings.flatRate !== lastSavedSettings.flatRate ||
       newSettings.percentage !== undefined && newSettings.percentage !== lastSavedSettings.percentage ||
       newSettings.markupType !== undefined && newSettings.markupType !== lastSavedSettings.markupType ||
+      newSettings.enabled !== undefined && newSettings.enabled !== lastSavedSettings.enabled ||
+      newSettings.showIndicator !== undefined && newSettings.showIndicator !== lastSavedSettings.showIndicator ||
       (newSettings.matrixRates && JSON.stringify(newSettings.matrixRates) !== JSON.stringify(lastSavedSettings.matrixRates))
     )) {
       setShowReloadButton(true);
@@ -67,17 +69,17 @@ function Popup() {
   };
 
   return (
-    <div className="w-[250px] h-[250px] p-6 bg-white overflow-y-auto">
-      <fieldset className="mb-6 border border-gray-200 rounded-md p-4">
-        <legend className="text-base font-medium text-gray-900">General Options</legend>
-        <div className="mt-4 flex justify-between items-center">
+    <div className="w-[350px] h-[450px] p-6 bg-white overflow-y-auto">
+      <fieldset className="mb-2 border border-gray-200 rounded-md p-4">
+        <legend className="text-sm font-medium text-gray-900">General Options</legend>
+        <div className="flex justify-between items-center space-y-3">
           <span className="text-sm text-gray-600">Enable Price Markup</span>
           <Switch
             checked={settings.enabled}
-            onChange={(checked) => handleSettingChange({ enabled: checked })}
+            onChange={(checked) => handleSettingChange({ enabled: checked, showIndicator: checked ? settings.showIndicator : false })}
           />
         </div>
-        <div className="mt-4 flex justify-between items-center">
+        <div className="flex justify-between items-center space-y-3 ">
           <span className="text-sm text-gray-600">Show Price Indicator</span>
           <Switch
             checked={settings.showIndicator}
@@ -88,8 +90,8 @@ function Popup() {
 
       {settings.enabled && (
         <>
-          <fieldset className="mb-6 border border-gray-200 rounded-md p-4">
-            <legend className="text-base font-medium text-gray-900 px-2">Markup Type</legend>
+          <fieldset className="mb-2 border border-gray-200 rounded-md p-4">
+            <legend className="text-sm font-medium text-gray-900 px-2">Markup Type</legend>
             <RadioGroup
               value={settings.markupType}
               onChange={(value) => handleSettingChange({ markupType: value as Settings['markupType'] })}
@@ -102,8 +104,8 @@ function Popup() {
           </fieldset>
 
           {settings.markupType === 'flat' && (
-            <fieldset className="mb-6 border border-gray-200 rounded-md p-4">
-              <legend className="text-base font-medium text-gray-900 px-2">Flat Rate ($)</legend>
+            <fieldset className="mb-2 border border-gray-200 rounded-md p-4">
+              <legend className="text-sm font-medium text-gray-900 px-2">Flat Rate ($)</legend>
               <NumberInput
                 value={settings.flatRate}
                 onChange={(value) => handleSettingChange({ flatRate: value })}
@@ -114,8 +116,8 @@ function Popup() {
           )}
 
           {settings.markupType === 'percentage' && (
-            <fieldset className="mb-6 border border-gray-200 rounded-md p-4">
-              <legend className="text-base font-medium text-gray-900 px-2">Percentage (%)</legend>
+            <fieldset className="mb-2 border border-gray-200 rounded-md p-4">
+              <legend className="text-sm font-medium text-gray-900 px-2">Percentage (%)</legend>
               <NumberInput
                 value={settings.percentage}
                 onChange={(value) => handleSettingChange({ percentage: value })}
@@ -127,8 +129,8 @@ function Popup() {
           )}
 
           {settings.markupType === 'matrix' && (
-            <fieldset className="mb-6 border border-gray-200 rounded-md p-4">
-              <legend className="text-base font-medium text-gray-900 px-2">Matrix Rates (%)</legend>
+            <fieldset className="mb-2 border border-gray-200 rounded-md p-4">
+              <legend className="text-sm font-medium text-gray-900 px-2">Matrix Rates (%)</legend>
               <MatrixInput
                 rates={settings.matrixRates}
                 onChange={(rates) => handleSettingChange({ matrixRates: rates })}
@@ -136,16 +138,18 @@ function Popup() {
             </fieldset>
           )}
 
-          {showReloadButton && (
-            <button
-              type="button"
-              className="w-full py-2 px-4 bg-blue-600 text-white border-none rounded-md text-sm font-medium cursor-pointer transition-colors hover:bg-blue-700 active:bg-blue-800"
-              onClick={handleSave}
-            >
-              Apply Changes
-            </button>
-          )}
         </>
+      )}
+      {showReloadButton && (
+        <div className="mt-3 flex justify-center items-center">
+          <button
+            type="button"
+            className="w-full py-2 px-4 bg-blue-600 text-white border-none rounded-md text-sm font-medium cursor-pointer transition-colors hover:bg-blue-700 active:bg-blue-800"
+            onClick={handleSave}
+          >
+            Apply Changes
+          </button>
+        </div>
       )}
     </div>
   );
