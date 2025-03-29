@@ -10,6 +10,9 @@ copyFileSync('manifest.json', 'dist/manifest.json');
 // Copy icons directory to dist
 cpSync('icons', 'dist/icons', { recursive: true });
 
+// Copy libraries to dist
+cpSync('lib', 'dist/lib', { recursive: true });
+
 // Create popup.html in dist
 const popupHtml = `<!DOCTYPE html>
 <html lang="en">
@@ -17,6 +20,7 @@ const popupHtml = `<!DOCTYPE html>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Price Markup Matrix</title>
+    <script src="./lib/tailwindcss_cdn_405.js"></script>
   </head>
   <body>
     <div id="root"></div>
