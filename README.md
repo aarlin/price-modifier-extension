@@ -1,53 +1,21 @@
 <div align="center">
 
-<picture>
-    <source media="(prefers-color-scheme: dark)" srcset="https://github.com/user-attachments/assets/99cb6303-64e4-4bed-bf3f-35735353e6de" />
-    <source media="(prefers-color-scheme: light)" srcset="https://github.com/user-attachments/assets/a5dbf71c-c509-4c4f-80f4-be88a1943b0a" />
-    <img alt="Logo" src="https://github.com/user-attachments/assets/99cb6303-64e4-4bed-bf3f-35735353e6de" />
-</picture>
 
 ![](https://img.shields.io/badge/React-61DAFB?style=flat-square&logo=react&logoColor=black)
 ![](https://img.shields.io/badge/Typescript-3178C6?style=flat-square&logo=typescript&logoColor=white)
 ![](https://badges.aleen42.com/src/vitejs.svg)
 
-![GitHub action badge](https://github.com/Jonghakseo/chrome-extension-boilerplate-react-vite/actions/workflows/build-zip.yml/badge.svg)
-![GitHub action badge](https://github.com/Jonghakseo/chrome-extension-boilerplate-react-vite/actions/workflows/lint.yml/badge.svg)
-
-<img src="https://hits.seeyoufarm.com/api/count/incr/badge.svg?url=https://github.com/Jonghakseo/chrome-extension-boilerplate-react-viteFactions&count_bg=%23#222222&title_bg=%23#454545&title=😀&edge_flat=true" alt="hits"/>
-<a href="https://discord.gg/4ERQ6jgV9a" target="_blank"><img src="https://discord.com/api/guilds/1263404974830915637/widget.png"/></a>
-
 </div>
-
-> [!TIP]
-> Share storage state between all pages
-
-
-## Table of Contents
-
-- [Intro](#intro)
-- [Features](#features)
-- [Structure](#structure)
-    - [ChromeExtension](#structure-chrome-extension)
-    - [Packages](#structure-packages)
-    - [Pages](#structure-pages)
-- [Getting started](#getting-started)
-    - [Chrome](#getting-started-chrome)
-    - [Firefox](#getting-started-firefox)
-- [Install dependency](#install-dependency)
-    - [For root](#install-dependency-for-root)
-    - [For module](#install-dependency-for-module)
-- [Environment variables](#env-variables)
-    - [Add new](#env-variables-new)
-    - [Set via CLI](#env-variables-cli-set)
-- [Community](#community)
-- [Reference](#reference)
-- [Star History](#star-history)
-- [Contributors](#contributors)
 
 ## Intro
 
-This boilerplate helps you create Chrome/Firefox extensions using React and Typescript. It improves
-the build speed and development experience by using Vite and Turborepo.
+<picture>
+    <source media="(prefers-color-scheme: dark)" srcset="./public/markupmatrix.png" />
+    <source media="(prefers-color-scheme: light)" srcset="./public/markupmatrix.png" />
+    <img alt="Logo" src="./public/markupmatrix.png" />
+</picture>
+
+This Chrome Extension helps you modify existing prices shown on the browser.
 
 ## Features
 
@@ -56,29 +24,13 @@ the build speed and development experience by using Vite and Turborepo.
 - [Tailwindcss](https://tailwindcss.com/)
 - [Vite](https://vitejs.dev/) with [Rollup](https://rollupjs.org/)
 - [Turborepo](https://turbo.build/repo)
-- [Prettier](https://prettier.io/)
-- [ESLint](https://eslint.org/)
+- [Biome](https://biomejs.dev/)
 - [Chrome Extensions Manifest Version 3](https://developer.chrome.com/docs/extensions/mv3/intro/)
 - [Custom i18n package](/packages/i18n/)
 - [Custom HMR (Hot Module Rebuild) plugin](/packages/hmr/)
 - [End-to-end testing with WebdriverIO](https://webdriver.io/)
 
 ## Getting started
-
-1. When you're using Windows run this:
-    - `git config --global core.eol lf`
-    - `git config --global core.autocrlf input`
-
-   **This will set the EOL (End of line) character to be the same as on Linux/macOS. Without this, our bash script won't
-   work, and you will have conflicts with developers on Linux/macOS.**
-2. Clone this repository.( ```git clone https://github.com/Jonghakseo/chrome-extension-boilerplate-react-vite``` )
-3. Ensure your node version is >= than in `.nvmrc` file, recommend to
-   use [nvm](https://github.com/nvm-sh/nvm?tab=readme-ov-file#intro)
-4. Edit `/packages/i18n/locales/`{your locale(s)}/`messages.json`
-5. In the objects `extensionDescription` and `extensionName`, change the `message` fields (leave `description` alone)
-6. In `/.package.json`, change the `version` to the desired version of your extension.
-7. Install pnpm globally: `npm install -g pnpm` (ensure your node version >= 22.12.0)
-8. Run `pnpm install`
 
 Then, depending on the target browser:
 
@@ -213,20 +165,3 @@ If saving source files doesn't cause the extension HMR code to trigger a reload 
    [kill the
    `turbo` process](https://github.com/Jonghakseo/chrome-extension-boilerplate-react-vite/issues/612#issuecomment-2518982339)
    and run `pnpm dev` again.
-
-## Community
-
-To chat with other community members, you can join the [Discord](https://discord.gg/4ERQ6jgV9a) server.
-You can ask questions on that server, and you can also help others.
-
-Also, suggest new features or share any challenges you've faced while developing Chrome extensions!
-
-## Reference
-
-- [Chrome Extensions](https://developer.chrome.com/docs/extensions)
-- [Vite Plugin](https://vitejs.dev/guide/api-plugin.html)
-- [Rollup](https://rollupjs.org/guide/en/)
-- [Turborepo](https://turbo.build/repo/docs)
-- [Rollup-plugin-chrome-extension](https://www.extend-chrome.dev/rollup-plugin)
-
-Made by [Jonghakseo](https://jonghakseo.github.io/)
