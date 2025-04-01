@@ -58,32 +58,6 @@ Then, depending on the target browser:
 > In Firefox, you load add-ons in temporary mode. That means they'll disappear after each browser close. You have to
 > load the add-on on every browser launch.
 
-## Install dependency for turborepo: <a name="install-dependency"></a>
-
-### For root: <a name="install-dependency-for-root"></a>
-
-1. Run `pnpm i <package> -w`
-
-### For module: <a name="install-dependency-for-module"></a>
-
-1. Run `pnpm i <package> -F <module name>`
-
-`package` - Name of the package you want to install e.g. `nodemon` \
-`module-name` - You can find it inside each `package.json` under the key `name`, e.g. `@extension/content-script`, you
-can use only `content-script` without `@extension/` prefix
-
-## How do I disable modules I'm not using?
-
-```bash
-$ pnpm module-manager
-```
-
-Read: [Module Manager](packages/module-manager/README.md)
-
-## Environment variables
-
-Read: [Env Documentation](packages/env/README.md)
-
 ## Boilerplate structure <a name="structure"></a>
 
 ### Chrome extension <a name="structure-chrome-extension"></a>
@@ -154,14 +128,3 @@ Other useful packages:
 - `module-manager` - run `pnpm module-manager` to enable/disable modules
 - `e2e` - run `pnpm e2e` for end-to-end tests of your zipped extension on different browsers
 
-## Troubleshooting
-
-### Hot module reload seems to have frozen
-
-If saving source files doesn't cause the extension HMR code to trigger a reload of the browser page, try this:
-
-1. Ctrl+C the development server and restart it (`pnpm run dev`)
-2. If you get a [`grpc` error](https://github.com/Jonghakseo/chrome-extension-boilerplate-react-vite/issues/612),
-   [kill the
-   `turbo` process](https://github.com/Jonghakseo/chrome-extension-boilerplate-react-vite/issues/612#issuecomment-2518982339)
-   and run `pnpm dev` again.
