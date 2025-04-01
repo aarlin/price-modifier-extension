@@ -89,7 +89,7 @@ class PriceMarkupManager {
   private findPriceElements() {
     if (this.isProcessing) return;
     this.isProcessing = true;
-
+  
     try {
       const walker = document.createTreeWalker(
         document.body,
@@ -98,12 +98,21 @@ class PriceMarkupManager {
           acceptNode: (node) => {
             if (!node.parentElement) return NodeFilter.FILTER_REJECT;
             if (this.priceElements.has(node.parentElement)) return NodeFilter.FILTER_REJECT;
-            if (this.isPriceNode(node)) return NodeFilter.FILTER_ACCEPT;
+  
+            // Combine all text nodes under the same parent element
+            const combinedText = Array.from(node.parentElement.childNodes)
+              .filter((child) => child.nodeType === Node.TEXT_NODE)
+              .map((child) => child.textContent?.trim() || '')
+              .join('');
+  
+            // Check if the combined text matches a price
+            if (this.isPriceNode(combinedText)) return NodeFilter.FILTER_ACCEPT;
+  
             return NodeFilter.FILTER_SKIP;
           },
         }
       );
-
+  
       let node = walker.nextNode();
       while (node) {
         if (node.parentElement) {
@@ -116,11 +125,12 @@ class PriceMarkupManager {
     }
   }
 
-  private isPriceNode(node: Node): boolean {
-    if (!node.textContent) return false;
+  private isPriceNode(text: string): boolean {
+    if (!text) return false;
+  
     // Match common currency formats: $, €, £, ¥
     const currencyRegex = /(?:^\$|\$\s+|\s+\$|\s+€|\s+£|\s+¥)\s*\d+(?:,\d{3})*(?:\.\d{2})?/;
-    return currencyRegex.test(node.textContent);
+    return currencyRegex.test(text);
   }
 
   private extractPrice(text: string): number | null {
@@ -147,66 +157,23 @@ class PriceMarkupManager {
   private calculateMatrixMarkup(price: number): number {
     // Define price ranges and corresponding markup percentages
     const priceMatrix: { min: number; max: number | null; rate: number }[] = [
-        { min: 0, max: 50, rate: 10 },       // $0.00 - $50.00: 10% markup
-        { min: 50.01, max: 100, rate: 8 },  // $50.01 - $100.00: 8% markup
-        { min: 100.01, max: 250, rate: 7 }, // $100.01 - $250.00: 7% markup
-        { min: 250.01, max: 500, rate: 6 }, // $250.01 - $500.00: 6% markup
-        { min: 500.01, max: 1000, rate: 5 },// $500.01 - $1000.00: 5% markup
-        { min: 1000.01, max: null, rate: 4 } // $1000.01 and above: 4% markup
+      { min: 0, max: 50, rate: 10 },       // $0.00 - $50.00: 10% markup
+      { min: 50.01, max: 100, rate: 8 },  // $50.01 - $100.00: 8% markup
+      { min: 100.01, max: 250, rate: 7 }, // $100.01 - $250.00: 7% markup
+      { min: 250.01, max: 500, rate: 6 }, // $250.01 - $500.00: 6% markup
+      { min: 500.01, max: 1000, rate: 5 },// $500.01 - $1000.00: 5% markup
+      { min: 1000.01, max: null, rate: 4 } // $1000.01 and above: 4% markup
     ];
 
     // Find the appropriate range for the given price
     for (const { min, max, rate } of priceMatrix) {
-        if (price >= min && (max === null || price <= max)) {
-            return price * (rate / 100); // Calculate the markup
-        }
+      if (price >= min && (max === null || price <= max)) {
+        return price * (rate / 100); // Calculate the markup
+      }
     }
 
     return 0; // Default to no markup if no range matches
-}
-
-  // private createIndicator(_element: HTMLElement, originalPrice: number, markup: number): HTMLElement {
-  //   const indicator = document.createElement('span');
-  //   indicator.className = 'tooltip'; // Tooltip container class
-
-  //   // Add the money bag icon and price
-  //   indicator.innerHTML = "*";
-
-  //   // Create tooltip content based on markup type
-  //   let tooltipContent = '';
-  //   switch (this.settings.markupType) {
-  //     case 'flat':
-  //       tooltipContent = `
-  //               Original: $${originalPrice.toFixed(2)}<br>
-  //               Markup: +$${markup.toFixed(2)}
-  //           `;
-  //       break;
-  //     case 'percentage':
-  //       tooltipContent = `
-  //               Original: $${originalPrice.toFixed(2)}<br>
-  //               Markup: ${this.settings.percentage}% (+$${markup.toFixed(2)})
-  //           `;
-  //       break;
-  //     case 'matrix': {
-  //       const markupPercentage = (markup / originalPrice) * 100;
-  //       tooltipContent = `
-  //               Original: $${originalPrice.toFixed(2)}<br>
-  //               Markup: ${markupPercentage.toFixed(1)}% (+$${markup.toFixed(2)})
-  //           `;
-  //       break;
-  //     }
-  //   }
-
-  //   // Create the tooltip text element
-  //   const tooltipText = document.createElement('span');
-  //   tooltipText.className = 'tooltiptext'; // Tooltip text class
-  //   tooltipText.innerHTML = tooltipContent;
-
-  //   // Append the tooltip text to the indicator
-  //   indicator.appendChild(tooltipText);
-
-  //   return indicator;
-  // }
+  }
 
   private updatePrices() {
     if (this.isProcessing) return;
