@@ -1,14 +1,7 @@
 import { snapOnEpcUseCase } from "./utils/snapOnEpc";
+import { Settings } from "./types";  // Import types
 
 // Remove Tippy imports since we're using native tooltips
-interface Settings {
-  enabled: boolean;
-  markupType: 'flat' | 'percentage' | 'matrixPercentage' | 'matrixFlat';
-  flatRate: number;
-  percentage: number;
-  showIndicator: boolean;
-  matrixRates: Record<string, number>;
-}
 
 class PriceMarkupManager {
   private settings: Settings = {
@@ -17,14 +10,14 @@ class PriceMarkupManager {
     flatRate: 0,
     percentage: 0,
     showIndicator: true,
-    matrixRates: {
-      '0-50.00': 5,
-      '50.01-100.00': 10,
-      '100.01-250.00': 15,
-      '250.10-500.00': 20,
-      '500.01-1000.00': 25,
-      '1000.01-': 30,
-    },
+    matrixRates: [
+      { min: 0, max: 50, rate: 5 },
+      { min: 50.01, max: 100, rate: 10 },
+      { min: 100.01, max: 250, rate: 15 },
+      { min: 250.01, max: 500, rate: 20 },
+      { min: 500.01, max: 1000, rate: 25 },
+      { min: 1000.01, max: null, rate: 30 },
+    ],
   };
 
   private priceElements: Set<HTMLElement> = new Set();
@@ -47,7 +40,13 @@ class PriceMarkupManager {
   private async loadSettings() {
     const result = await chrome.storage.sync.get(['settings']);
     if (result.settings) {
-      this.settings = result.settings;
+      // Ensure matrixRates is an array
+      this.settings = {
+        ...result.settings,
+        matrixRates: Array.isArray(result.settings.matrixRates) 
+          ? result.settings.matrixRates 
+          : this.settings.matrixRates
+      };
       this.updatePrices();
     }
   }
@@ -165,18 +164,8 @@ class PriceMarkupManager {
   }
 
   private calculateMatrixMarkup(price: number): number {
-    // Define price ranges and corresponding markup percentages
-    const priceMatrix: { min: number; max: number | null; rate: number }[] = [
-      { min: 0, max: 50, rate: 10 },       // $0.00 - $50.00: 10% markup
-      { min: 50.01, max: 100, rate: 8 },  // $50.01 - $100.00: 8% markup
-      { min: 100.01, max: 250, rate: 7 }, // $100.01 - $250.00: 7% markup
-      { min: 250.01, max: 500, rate: 6 }, // $250.01 - $500.00: 6% markup
-      { min: 500.01, max: 1000, rate: 5 },// $500.01 - $1000.00: 5% markup
-      { min: 1000.01, max: null, rate: 4 } // $1000.01 and above: 4% markup
-    ];
-
     // Find the appropriate range for the given price
-    for (const { min, max, rate } of priceMatrix) {
+    for (const { min, max, rate } of this.settings.matrixRates) {
       if (price >= min && (max === null || price <= max)) {
         return price * (rate / 100); // Calculate the markup
       }
@@ -207,7 +196,8 @@ class PriceMarkupManager {
           this.originalPrices.set(element, price);
         }
 
-        const price = this.originalPrices.get(element)!;
+        const price = this.originalPrices.get(element);
+        if (!price) continue;
         const markup = this.calculateMarkup(price);
         const newPrice = price + markup;
         const formattedPrice = newPrice.toLocaleString('en-US', {

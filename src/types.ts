@@ -1,10 +1,16 @@
+export interface MatrixRate {
+  min: number;
+  max: number | null;
+  rate: number;
+}
+
 export interface Settings {
   enabled: boolean;
   markupType: 'flat' | 'percentage' | 'matrixPercentage' | 'matrixFlat';
   flatRate: number;
   percentage: number;
   showIndicator: boolean;
-  matrixRates: Record<string, number>;
+  matrixRates: MatrixRate[];
 }
 
 export interface SwitchProps {
@@ -32,6 +38,6 @@ export interface RadioGroupProps {
 }
 
 export interface MatrixInputProps {
-  rates: Record<string, number>;
-  onChange: (rates: Record<string, number>) => void;
+  rates: MatrixRate[];
+  onChange: (rates: MatrixRate[]) => void;
 } 
