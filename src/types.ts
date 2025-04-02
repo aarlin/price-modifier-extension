@@ -1,6 +1,6 @@
 export interface Settings {
   enabled: boolean;
-  markupType: 'flat' | 'percentage' | 'matrix';
+  markupType: 'flat' | 'percentage' | 'matrixPercentage' | 'matrixFlat';
   flatRate: number;
   percentage: number;
   showIndicator: boolean;

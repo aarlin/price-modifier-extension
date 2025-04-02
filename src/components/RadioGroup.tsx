@@ -1,4 +1,4 @@
-import { RadioGroupProps } from '../types';
+import { RadioGroupProps } from '@/types';
 
 export function RadioGroup({ value, onChange, options }: RadioGroupProps) {
   return (

@@ -1,8 +1,11 @@
 import { copyFileSync, cpSync, writeFileSync } from 'node:fs';
 import { execSync } from 'node:child_process';
 
-// Run the build command
-execSync('npm run vite-build', { stdio: 'inherit' });
+// Check if the build is for development
+const isDevBuild = process.argv.includes('--dev');
+
+// Run the appropriate build command
+execSync(`npm run vite-build${isDevBuild ? ' -- --mode development' : ''}`, { stdio: 'inherit' });
 
 // Copy manifest.json to dist directory
 copyFileSync('manifest.json', 'dist/manifest.json');
@@ -28,4 +31,6 @@ const popupHtml = `<!DOCTYPE html>
   </body>
 </html>`;
 
-writeFileSync('dist/popup.html', popupHtml); 
+writeFileSync('dist/popup.html', popupHtml);
+
+console.log(`Build completed in ${isDevBuild ? 'development' : 'production'} mode.`);

@@ -7,6 +7,7 @@
     "dev": "vite",
     "vite-build": "tsc && vite build",
     "build": "node scripts/generate-icons.js && node build.js",
+    "dev-build": "node scripts/generate-icons.js && node build.js --dev",
     "format": "biome format --write .",
     "lint": "biome lint .",
     "check": "biome check --apply ."

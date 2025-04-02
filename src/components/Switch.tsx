@@ -1,4 +1,4 @@
-import { SwitchProps } from '../types';
+import { SwitchProps } from '@/types';
 
 export function Switch({ checked, onChange }: SwitchProps) {
   return (

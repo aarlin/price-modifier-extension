@@ -98,7 +98,8 @@ function Popup() {
               options={[
                 { label: 'Flat Rate', value: 'flat' },
                 { label: 'Percentage', value: 'percentage' },
-                { label: 'Matrix', value: 'matrix' },
+                { label: 'Matrix (%)', value: 'matrixPercentage' },
+                { label: 'Matrix ($)', value: 'matrixFlat' },
               ]}
             />
           </fieldset>
@@ -110,7 +111,7 @@ function Popup() {
                 value={settings.flatRate}
                 onChange={(value) => handleSettingChange({ flatRate: value })}
                 min={0}
-                step={0.01}
+                step={1}
               />
             </fieldset>
           )}
@@ -123,14 +124,24 @@ function Popup() {
                 onChange={(value) => handleSettingChange({ percentage: value })}
                 min={0}
                 max={100}
-                step={0.1}
+                step={1}
               />
             </fieldset>
           )}
 
-          {settings.markupType === 'matrix' && (
+          {settings.markupType === 'matrixPercentage' && (
             <fieldset className="mb-2 border border-gray-200 rounded-md p-4">
               <legend className="text-sm font-medium text-gray-900 px-2">Matrix Rates (%)</legend>
+              <MatrixInput
+                rates={settings.matrixRates}
+                onChange={(rates) => handleSettingChange({ matrixRates: rates })}
+              />
+            </fieldset>
+          )}
+
+          {settings.markupType === 'matrixFlat' && (
+            <fieldset className="mb-2 border border-gray-200 rounded-md p-4">
+              <legend className="text-sm font-medium text-gray-900 px-2">Matrix Rates ($)</legend>
               <MatrixInput
                 rates={settings.matrixRates}
                 onChange={(rates) => handleSettingChange({ matrixRates: rates })}

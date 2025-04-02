@@ -1,7 +1,9 @@
+import { snapOnEpcUseCase } from "./utils/snapOnEpc";
+
 // Remove Tippy imports since we're using native tooltips
 interface Settings {
   enabled: boolean;
-  markupType: 'flat' | 'percentage' | 'matrix';
+  markupType: 'flat' | 'percentage' | 'matrixPercentage' | 'matrixFlat';
   flatRate: number;
   percentage: number;
   showIndicator: boolean;
@@ -89,7 +91,7 @@ class PriceMarkupManager {
   private findPriceElements() {
     if (this.isProcessing) return;
     this.isProcessing = true;
-  
+
     try {
       const walker = document.createTreeWalker(
         document.body,
@@ -98,21 +100,27 @@ class PriceMarkupManager {
           acceptNode: (node) => {
             if (!node.parentElement) return NodeFilter.FILTER_REJECT;
             if (this.priceElements.has(node.parentElement)) return NodeFilter.FILTER_REJECT;
-  
+
+            // Use the Snap-on EPC logic
+            const snapOnResult = snapOnEpcUseCase(node);
+            if (snapOnResult === NodeFilter.FILTER_ACCEPT) {
+              return NodeFilter.FILTER_ACCEPT;
+            }
+
             // Combine all text nodes under the same parent element
             const combinedText = Array.from(node.parentElement.childNodes)
               .filter((child) => child.nodeType === Node.TEXT_NODE)
               .map((child) => child.textContent?.trim() || '')
               .join('');
-  
+
             // Check if the combined text matches a price
             if (this.isPriceNode(combinedText)) return NodeFilter.FILTER_ACCEPT;
-  
+
             return NodeFilter.FILTER_SKIP;
           },
         }
       );
-  
+
       let node = walker.nextNode();
       while (node) {
         if (node.parentElement) {
@@ -127,15 +135,15 @@ class PriceMarkupManager {
 
   private isPriceNode(text: string): boolean {
     if (!text) return false;
-  
+
     // Match common currency formats: $, €, £, ¥
     const currencyRegex = /(?:^\$|\$\s+|\s+\$|\s+€|\s+£|\s+¥)\s*\d+(?:,\d{3})*(?:\.\d{2})?/;
     return currencyRegex.test(text);
   }
 
   private extractPrice(text: string): number | null {
-    // Match the number after a currency symbol
-    const currencyRegex = /(?:\$|€|£|¥)\s*(\d+(?:,\d{3})*(?:\.\d{2})?)/;
+    // Match the number with or without a currency symbol
+    const currencyRegex = /(?:\$|€|£|¥)?\s*(\d+(?:,\d{3})*(?:\.\d{2})?)/;
     const match = text.match(currencyRegex);
     if (!match) return null;
     return Number.parseFloat(match[1].replace(/,/g, ''));
@@ -147,7 +155,9 @@ class PriceMarkupManager {
         return this.settings.flatRate;
       case 'percentage':
         return price * (this.settings.percentage / 100);
-      case 'matrix':
+      case 'matrixPercentage':
+        return this.calculateMatrixMarkup(price);
+      case 'matrixFlat':
         return this.calculateMatrixMarkup(price);
       default:
         return 0;

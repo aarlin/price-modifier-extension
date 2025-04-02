@@ -1,10 +1,10 @@
-import { NumberInputProps } from '../types';
+import { NumberInputProps } from '@/types';
 
 export function NumberInput({ value, onChange, min, max, step }: NumberInputProps) {
   return (
     <input
       type="number"
-      value={value}
+      value={value ?? ''}
       onChange={(e) => onChange(Number(e.target.value))}
       min={min}
       max={max}
