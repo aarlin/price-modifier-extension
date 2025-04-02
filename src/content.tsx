@@ -1,5 +1,6 @@
 import { snapOnEpcUseCase } from "./utils/snapOnEpc";
 import { Settings } from "./types";  // Import types
+import { findAmazonPriceElements, isAmazonPriceElement, extractAmazonPrice, updateAmazonPrice } from "./utils/amazonPrice";
 
 // Remove Tippy imports since we're using native tooltips
 
@@ -92,6 +93,12 @@ class PriceMarkupManager {
     this.isProcessing = true;
 
     try {
+      // First find Amazon price elements
+      const amazonElements = findAmazonPriceElements();
+      for (const element of amazonElements) {
+        this.priceElements.add(element);
+      }
+
       const walker = document.createTreeWalker(
         document.body,
         NodeFilter.SHOW_TEXT,
@@ -140,10 +147,20 @@ class PriceMarkupManager {
     return currencyRegex.test(text);
   }
 
-  private extractPrice(text: string): number | null {
+  private extractPrice(element: HTMLElement): number | null {
+    // Check if this is an Amazon price element
+    if (isAmazonPriceElement(element)) {
+      return extractAmazonPrice(element);
+    }
+
+    // For non-Amazon prices, combine text nodes
+    const combinedText = Array.from(element.childNodes)
+      .map((node) => node.textContent?.trim() || '')
+      .join('');
+
     // Match the number with or without a currency symbol
     const currencyRegex = /(?:\$|€|£|¥)?\s*(\d+(?:,\d{3})*(?:\.\d{2})?)/;
-    const match = text.match(currencyRegex);
+    const match = combinedText.match(currencyRegex);
     if (!match) return null;
     return Number.parseFloat(match[1].replace(/,/g, ''));
   }
@@ -187,11 +204,7 @@ class PriceMarkupManager {
       for (const element of this.priceElements) {
         const originalPrice = this.originalPrices.get(element);
         if (!originalPrice) {
-          // Combine text nodes to extract the full price
-          const combinedText = Array.from(element.childNodes)
-            .map((node) => node.textContent?.trim() || '')
-            .join('');
-          const price = this.extractPrice(combinedText);
+          const price = this.extractPrice(element);
           if (!price) continue;
           this.originalPrices.set(element, price);
         }
@@ -200,19 +213,24 @@ class PriceMarkupManager {
         if (!price) continue;
         const markup = this.calculateMarkup(price);
         const newPrice = price + markup;
-        const formattedPrice = newPrice.toLocaleString('en-US', {
-          style: 'currency',
-          currency: 'USD',
-        });
 
-        // Clear existing child nodes and update the content
-        element.textContent = formattedPrice;
+        // Check if this is an Amazon price element
+        if (isAmazonPriceElement(element)) {
+          updateAmazonPrice(element, newPrice);
+        } else {
+          // For non-Amazon prices, use the standard formatting
+          const formattedPrice = newPrice.toLocaleString('en-US', {
+            style: 'currency',
+            currency: 'USD',
+          });
+          element.textContent = formattedPrice;
+        }
 
         if (this.settings.showIndicator) {
-          const superscript = document.createElement('sup'); // Create a <sup> element
-          superscript.textContent = '*'; // Set the superscript content to '*'
-          element.appendChild(superscript); // Append the superscript to the price element
-          this.indicatorElements.set(element, superscript); // Track the indicator
+          const superscript = document.createElement('sup');
+          superscript.textContent = '*';
+          element.appendChild(superscript);
+          this.indicatorElements.set(element, superscript);
         }
       }
     } finally {
