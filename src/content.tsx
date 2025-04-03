@@ -1,6 +1,7 @@
 import { snapOnEpcUseCase } from "./utils/snapOnEpc";
 import { Settings } from "./types";  // Import types
 import { findAmazonPriceElements, isAmazonPriceElement, extractAmazonPrice, updateAmazonPrice } from "./utils/amazonPrice";
+import { findAliExpressPriceElements, isAliExpressPriceElement, extractAliExpressPrice, updateAliExpressPrice } from "./utils/aliExpressPrice";
 
 // Remove Tippy imports since we're using native tooltips
 
@@ -99,6 +100,12 @@ class PriceMarkupManager {
         this.priceElements.add(element);
       }
 
+      // Find AliExpress price elements
+      const aliExpressElements = findAliExpressPriceElements();
+      for (const element of aliExpressElements) {
+        this.priceElements.add(element);
+      }
+
       const walker = document.createTreeWalker(
         document.body,
         NodeFilter.SHOW_TEXT,
@@ -151,6 +158,11 @@ class PriceMarkupManager {
     // Check if this is an Amazon price element
     if (isAmazonPriceElement(element)) {
       return extractAmazonPrice(element);
+    }
+
+    // Check if this is an AliExpress price element
+    if (isAliExpressPriceElement(element)) {
+      return extractAliExpressPrice(element);
     }
 
     // For non-Amazon prices, combine text nodes
@@ -225,6 +237,8 @@ class PriceMarkupManager {
         // Check if this is an Amazon price element
         if (isAmazonPriceElement(element)) {
           updateAmazonPrice(element, newPrice);
+        } else if (isAliExpressPriceElement(element)) {
+          updateAliExpressPrice(element, newPrice);
         } else {
           // For non-Amazon prices, use the standard formatting
           const formattedPrice = newPrice.toLocaleString('en-US', {
@@ -250,16 +264,26 @@ class PriceMarkupManager {
     for (const element of this.priceElements) {
       const originalPrice = this.originalPrices.get(element);
       if (originalPrice) {
-        if (element.classList.contains('a-price')) {
+        if (isAmazonPriceElement(element)) {
           // For Amazon prices, restore the original HTML structure
           const formattedPrice = originalPrice.toFixed(2);
           const [wholePart, fractionPart] = formattedPrice.split('.');
           
-          const wholeElement = element.querySelector('.a-price-whole');
-          const fractionElement = element.querySelector('.a-price-fraction');
+          const wholeElement = element.querySelector('.a-price-whole') as HTMLElement;
+          const fractionElement = element.querySelector('.a-price-fraction') as HTMLElement;
           
           if (wholeElement) wholeElement.textContent = wholePart;
           if (fractionElement) fractionElement.textContent = fractionPart;
+        } else if (isAliExpressPriceElement(element)) {
+          // For AliExpress prices, restore the original HTML structure
+          const formattedPrice = originalPrice.toFixed(2);
+          const [wholePart, decimalPart] = formattedPrice.split('.');
+          
+          const spans = element.querySelectorAll('span');
+          if (spans.length >= 4) {
+            if (spans[1]) spans[1].textContent = wholePart;
+            if (spans[3]) spans[3].textContent = decimalPart;
+          }
         } else {
           // For non-Amazon prices, use the standard formatting
           const formattedPrice = originalPrice.toLocaleString('en-US', {
