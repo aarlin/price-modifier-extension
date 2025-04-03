@@ -184,7 +184,10 @@ class PriceMarkupManager {
     // Find the appropriate range for the given price
     for (const { min, max, rate } of this.settings.matrixRates) {
       if (price >= min && (max === null || price <= max)) {
-        return price * (rate / 100); // Calculate the markup
+        if (this.settings.markupType === 'matrixPercentage') {
+          return price * (rate / 100); // Calculate percentage markup
+        }
+        return rate; // Use flat rate for matrixFlat
       }
     }
 
@@ -212,7 +215,12 @@ class PriceMarkupManager {
         const price = this.originalPrices.get(element);
         if (!price) continue;
         const markup = this.calculateMarkup(price);
-        const newPrice = price + markup;
+        
+        // Convert to cents, add, then convert back to dollars to avoid floating point issues
+        const priceInCents = Math.round(price * 100);
+        const markupInCents = Math.round(markup * 100);
+        const newPriceInCents = priceInCents + markupInCents;
+        const newPrice = newPriceInCents / 100;
 
         // Check if this is an Amazon price element
         if (isAmazonPriceElement(element)) {
@@ -242,16 +250,23 @@ class PriceMarkupManager {
     for (const element of this.priceElements) {
       const originalPrice = this.originalPrices.get(element);
       if (originalPrice) {
-        const formattedPrice = originalPrice.toLocaleString('en-US', {
-          style: 'currency',
-          currency: 'USD',
-        });
-        const text = element.textContent;
-        if (text) {
-          element.textContent = text.replace(
-            /\$?\s*\d+(?:,\d{3})*(?:\.\d{2})?/,
-            formattedPrice
-          );
+        if (element.classList.contains('a-price')) {
+          // For Amazon prices, restore the original HTML structure
+          const formattedPrice = originalPrice.toFixed(2);
+          const [wholePart, fractionPart] = formattedPrice.split('.');
+          
+          const wholeElement = element.querySelector('.a-price-whole');
+          const fractionElement = element.querySelector('.a-price-fraction');
+          
+          if (wholeElement) wholeElement.textContent = wholePart;
+          if (fractionElement) fractionElement.textContent = fractionPart;
+        } else {
+          // For non-Amazon prices, use the standard formatting
+          const formattedPrice = originalPrice.toLocaleString('en-US', {
+            style: 'currency',
+            currency: 'USD',
+          });
+          element.textContent = formattedPrice;
         }
       }
     }
