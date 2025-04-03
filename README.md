@@ -1,13 +1,4 @@
-<div align="center">
-
-
-![](https://img.shields.io/badge/React-61DAFB?style=flat-square&logo=react&logoColor=black)
-![](https://img.shields.io/badge/Typescript-3178C6?style=flat-square&logo=typescript&logoColor=white)
-![](https://badges.aleen42.com/src/vitejs.svg)
-
-</div>
-
-## Intro
+# Markup Matrix
 
 <picture>
     <source media="(prefers-color-scheme: dark)" srcset="./public/markupmatrix.png" />
@@ -15,116 +6,95 @@
     <img alt="Logo" src="./public/markupmatrix.png" />
 </picture>
 
-This Chrome Extension helps you modify existing prices shown on the browser.
+A Chrome extension that automatically applies customizable markups to prices on various e-commerce websites including Amazon, AliExpress, and Snap-on EPC.
+
+<div align="center">
+![](https://img.shields.io/badge/React-61DAFB?style=flat-square&logo=react&logoColor=black)
+![](https://img.shields.io/badge/Typescript-3178C6?style=flat-square&logo=typescript&logoColor=white)
+![](https://badges.aleen42.com/src/vitejs.svg)
+</div>
 
 ## Features
 
-- [React19](https://reactjs.org/)
-- [TypeScript](https://www.typescriptlang.org/)
-- [Tailwindcss](https://tailwindcss.com/)
-- [Vite](https://vitejs.dev/) with [Rollup](https://rollupjs.org/)
-- [Turborepo](https://turbo.build/repo)
-- [Biome](https://biomejs.dev/)
-- [Chrome Extensions Manifest Version 3](https://developer.chrome.com/docs/extensions/mv3/intro/)
-- [Custom i18n package](/packages/i18n/)
-- [Custom HMR (Hot Module Rebuild) plugin](/packages/hmr/)
-- [End-to-end testing with WebdriverIO](https://webdriver.io/)
+- **Multi-Platform Support**: Works with Amazon, AliExpress, and Snap-on EPC
+- **Flexible Markup Options**:
+  - Flat rate markup
+  - Percentage-based markup
+  - Matrix-based markup with customizable price ranges
+- **Real-time Price Updates**: Automatically updates prices as you browse
+- **Visual Indicators**: Option to show markup indicators on updated prices
+- **Precise Calculations**: Handles decimal arithmetic accurately
+- **Individual Part Pricing**: Correctly calculates totals based on marked-up individual parts
 
-## Getting started
+## Installation
 
-Then, depending on the target browser:
+1. Clone this repository
+2. Open Chrome and navigate to `chrome://extensions/`
+3. Enable "Developer mode" in the top right
+4. Click "Load unpacked" and select the project directory
 
-### For Chrome: <a name="getting-started-chrome"></a>
+## Usage
 
-1. Run:
-    - Dev: `pnpm dev` (on Windows, you should run as administrator;
-      see [issue#456](https://github.com/Jonghakseo/chrome-extension-boilerplate-react-vite/issues/456))
-    - Prod: `pnpm build`
-2. Open in browser - `chrome://extensions`
-3. Check - <kbd>Developer mode</kbd>
-4. Click - <kbd>Load unpacked</kbd> in the upper left corner
-5. Select the `dist` directory from the boilerplate project
+1. Click the extension icon to open the settings panel
+2. Configure your markup preferences:
+   - Enable/disable the extension
+   - Choose markup type (flat, percentage, or matrix)
+   - Set markup rates
+   - Toggle price indicators
+3. Navigate to supported websites to see prices automatically updated
 
-### For Firefox: <a name="getting-started-firefox"></a>
+## Supported Websites
 
-1. Run:
-    - Dev: `pnpm dev:firefox`
-    - Prod: `pnpm build:firefox`
-2. Open in browser - `about:debugging#/runtime/this-firefox`
-3. Click - <kbd>Load Temporary Add-on...</kbd> in the upper right corner
-4. Select the `./dist/manifest.json` file from the boilerplate project
+- **Amazon**: Updates product prices and totals
+- **AliExpress**: Updates product prices and totals
+- **Snap-on EPC**: Updates individual part prices and totals
 
-> [!NOTE]
-> In Firefox, you load add-ons in temporary mode. That means they'll disappear after each browser close. You have to
-> load the add-on on every browser launch.
+## Price Calculation Examples
 
-## Boilerplate structure <a name="structure"></a>
+### Individual Part Markup
+- Original price: $10.00
+- Markup: $5.00
+- New price: $15.00
 
-### Chrome extension <a name="structure-chrome-extension"></a>
+### Total Calculation
+- Part 1: $10.00 + $5 markup = $15.00
+- Part 2: $10.00 + $5 markup = $15.00
+- Total: $30.00 (sum of marked-up prices)
 
-The extension lives in the `chrome-extension` directory and includes the following files:
+## Development
 
-- [`manifest.ts`](chrome-extension/manifest.ts) - script that outputs the `manifest.json`
-- [`src/background`](chrome-extension/src/background) - [background script](https://developer.chrome.com/docs/extensions/mv3/background_pages/)
-  (`background.service_worker` in manifest.json)
-- [`public`](chrome-extension/public/) - icons referenced in the manifest; content CSS for user's page injection
+### Project Structure
+```
+src/
+  ├── content.tsx        # Main content script
+  ├── popup.tsx          # Extension popup UI
+  ├── background.ts      # Background script
+  ├── types.ts           # TypeScript type definitions
+  └── utils/
+      ├── amazonPrice.ts    # Amazon price handling
+      ├── aliExpressPrice.ts # AliExpress price handling
+      └── snapOnPrice.ts    # Snap-on EPC price handling
+```
 
-> [!IMPORTANT]
-> To facilitate development, the boilerplate is configured to "Read and change all your data on all websites".
-> In production, it's best practice to limit the premissions to only the strictly necessary websites. See
-> [Declaring permissions](https://developer.chrome.com/docs/extensions/develop/concepts/declare-permissions)
-> and edit `manifest.js` accordingly.
+### Building
+1. Install dependencies:
+   ```bash
+   npm install
+   ```
+2. Build the extension:
+   ```bash
+   npm run build
+   ```
 
-### Pages <a name="structure-pages"></a>
+## Contributing
 
-Code that is transpiled to be part of the extension lives in the [pages](pages/) directory.
+1. Fork the repository
+2. Create a feature branch
+3. Commit your changes
+4. Push to the branch
+5. Create a Pull Request
 
-- [
-  `content`](pages/content/) - [content scripts](https://developer.chrome.com/docs/extensions/develop/concepts/content-scripts)
-  (`content_scripts` in manifest.json)
-- [`content-ui`](pages/content-ui) - React UI rendered in the current page (you can see it at the very bottom when you
-  get started)
-  (`content_scripts` in manifest.json)
-- [
-  `content-runtime`](pages/content-runtime/src/) - [injected content scripts](https://developer.chrome.com/docs/extensions/develop/concepts/content-scripts#functionality);
-  this can be injected from `popup` like standard `content`
-- [
-  `devtools`](pages/devtools/) - [extend the browser DevTools](https://developer.chrome.com/docs/extensions/how-to/devtools/extend-devtools#creating)
-  (`devtools_page` in manifest.json)
-- [
-  `devtools-panel`](pages/devtools-panel/) - [DevTools panel](https://developer.chrome.com/docs/extensions/reference/api/devtools/panels)
-  for [devtools](pages/devtools/src/index.ts)
-- [
-  `new-tab`](pages/new-tab/) - [override the default New Tab page](https://developer.chrome.com/docs/extensions/develop/ui/override-chrome-pages)
-  (`chrome_url_overrides.newtab` in manifest.json)
-- [`options`](pages/options/) - [options page](https://developer.chrome.com/docs/extensions/develop/ui/options-page)
-  (`options_page` in manifest.json)
-- [`popup`](pages/popup/) - [popup](https://developer.chrome.com/docs/extensions/reference/api/action#popup) shown when
-  clicking the extension in the toolbar
-  (`action.default_popup` in manifest.json)
-- [
-  `side-panel`](pages/side-panel/) - [sidepanel (Chrome 114+)](https://developer.chrome.com/docs/extensions/reference/api/sidePanel)
-  (`side_panel.default_path` in manifest.json)
+## License
 
-### Packages <a name="structure-packages"></a>
-
-Some shared packages:
-
-- `dev-utils` - utilities for Chrome extension development (manifest-parser, logger)
-- `env` - exports object which contain all environment variables from `.env` and dynamically declared
-- `hmr` - custom HMR plugin for Vite, injection script for reload/refresh, HMR dev-server
-- `i18n` - custom internationalization package; provides i18n function with type safety and other validation
-- `shared` - shared code for the entire project (types, constants, custom hooks, components etc.)
-- `storage` - helpers for easier integration with [storage](https://developer.chrome.com/docs/extensions/reference/api/storage), e.g. local/session storages
-- `tailwind-config` - shared Tailwind config for entire project
-- `tsconfig` - shared tsconfig for the entire project
-- `ui` - function to merge your Tailwind config with the global one; you can save components here
-- `vite-config` - shared Vite config for the entire project
-
-Other useful packages:
-
-- `zipper` - run `pnpm zip` to pack the `dist` folder into `extension-YYYYMMDD-HHmmss.zip` inside the newly created
-  `dist-zip`
-- `module-manager` - run `pnpm module-manager` to enable/disable modules
-- `e2e` - run `pnpm e2e` for end-to-end tests of your zipped extension on different browsers
+This project is licensed under the MIT License - see the LICENSE file for details.
 
