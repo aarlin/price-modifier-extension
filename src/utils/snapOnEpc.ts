@@ -1,4 +1,4 @@
-import { containsCurrency, isPriceNode } from '@/utils/helpers'; // Adjust the import paths as needed
+import { containsCurrency, isPriceNode } from '@/lib/utils'; // Adjust the import paths as needed
 
 export function snapOnEpcUseCase(node: Node): number | NodeFilter {
     // Check if the current URL is snaponepc.com

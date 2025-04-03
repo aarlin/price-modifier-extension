@@ -2,6 +2,7 @@ import { snapOnEpcUseCase } from "./utils/snapOnEpc";
 import { Settings } from "./types";  // Import types
 import { findAmazonPriceElements, isAmazonPriceElement, extractAmazonPrice, updateAmazonPrice } from "./utils/amazonPrice";
 import { findAliExpressPriceElements, isAliExpressPriceElement, extractAliExpressPrice, updateAliExpressPrice } from "./utils/aliExpressPrice";
+import { findSnapOnPriceElements, isSnapOnPriceElement, extractSnapOnPrice, updateSnapOnPrice } from "./utils/snapOnPrice";
 
 // Remove Tippy imports since we're using native tooltips
 
@@ -94,15 +95,26 @@ class PriceMarkupManager {
     this.isProcessing = true;
 
     try {
+      console.log('Starting price element search...');
+
       // First find Amazon price elements
       const amazonElements = findAmazonPriceElements();
+      console.log('Found Amazon elements:', amazonElements.length);
       for (const element of amazonElements) {
         this.priceElements.add(element);
       }
 
       // Find AliExpress price elements
       const aliExpressElements = findAliExpressPriceElements();
+      console.log('Found AliExpress elements:', aliExpressElements.length);
       for (const element of aliExpressElements) {
+        this.priceElements.add(element);
+      }
+
+      // Find Snap-on price elements
+      const snapOnElements = findSnapOnPriceElements();
+      console.log('Found Snap-on elements:', snapOnElements.length);
+      for (const element of snapOnElements) {
         this.priceElements.add(element);
       }
 
@@ -111,12 +123,29 @@ class PriceMarkupManager {
         NodeFilter.SHOW_TEXT,
         {
           acceptNode: (node) => {
-            if (!node.parentElement) return NodeFilter.FILTER_REJECT;
-            if (this.priceElements.has(node.parentElement)) return NodeFilter.FILTER_REJECT;
+            if (!node.parentElement) {
+              console.log('Rejecting node: No parent element');
+              return NodeFilter.FILTER_REJECT;
+            }
+            if (this.priceElements.has(node.parentElement)) {
+              console.log('Rejecting node: Already processed', node.parentElement);
+              return NodeFilter.FILTER_REJECT;
+            }
+
+            // Debug Snap-on EPC logic
+            const grandparent = node.parentElement.parentElement;
+            console.log('Node hierarchy:', {
+              node: node.textContent,
+              parent: node.parentElement?.className,
+              grandparent: grandparent?.className,
+              parentHTML: node.parentElement?.outerHTML,
+              grandparentHTML: grandparent?.outerHTML
+            });
 
             // Use the Snap-on EPC logic
             const snapOnResult = snapOnEpcUseCase(node);
             if (snapOnResult === NodeFilter.FILTER_ACCEPT) {
+              console.log('Accepting node via Snap-on EPC:', node.textContent);
               return NodeFilter.FILTER_ACCEPT;
             }
 
@@ -127,8 +156,12 @@ class PriceMarkupManager {
               .join('');
 
             // Check if the combined text matches a price
-            if (this.isPriceNode(combinedText)) return NodeFilter.FILTER_ACCEPT;
+            if (this.isPriceNode(combinedText)) {
+              console.log('Accepting node via price match:', combinedText);
+              return NodeFilter.FILTER_ACCEPT;
+            }
 
+            console.log('Skipping node:', node.textContent);
             return NodeFilter.FILTER_SKIP;
           },
         }
@@ -137,12 +170,18 @@ class PriceMarkupManager {
       let node = walker.nextNode();
       while (node) {
         if (node.parentElement) {
+          console.log('Adding price element:', {
+            text: node.textContent,
+            parentClass: node.parentElement.className,
+            parentHTML: node.parentElement.outerHTML
+          });
           this.priceElements.add(node.parentElement);
         }
         node = walker.nextNode();
       }
     } finally {
       this.isProcessing = false;
+      console.log('Total price elements found:', this.priceElements.size);
     }
   }
 
@@ -163,6 +202,11 @@ class PriceMarkupManager {
     // Check if this is an AliExpress price element
     if (isAliExpressPriceElement(element)) {
       return extractAliExpressPrice(element);
+    }
+
+    // Check if this is a Snap-on price element
+    if (isSnapOnPriceElement(element)) {
+      return extractSnapOnPrice(element);
     }
 
     // For non-Amazon prices, combine text nodes
@@ -212,15 +256,25 @@ class PriceMarkupManager {
 
     try {
       if (!this.settings.enabled) {
+        console.log('Extension disabled, restoring original prices');
         this.restoreOriginalPrices();
         return;
       }
 
+      console.log('Starting price updates for', this.priceElements.size, 'elements');
+
+      // First, update all individual prices and collect their marked-up values
+      const markedUpPrices: number[] = [];
+      
       for (const element of this.priceElements) {
         const originalPrice = this.originalPrices.get(element);
         if (!originalPrice) {
           const price = this.extractPrice(element);
-          if (!price) continue;
+          if (!price) {
+            console.log('Skipping element - no price found:', element.outerHTML);
+            continue;
+          }
+          console.log('Found new price:', price, 'for element:', element.outerHTML);
           this.originalPrices.set(element, price);
         }
 
@@ -234,11 +288,23 @@ class PriceMarkupManager {
         const newPriceInCents = priceInCents + markupInCents;
         const newPrice = newPriceInCents / 100;
 
-        // Check if this is an Amazon price element
+        // Store the marked-up price for total calculation
+        markedUpPrices.push(newPrice);
+
+        console.log('Updating price:', {
+          original: price,
+          markup: markup,
+          newPrice: newPrice,
+          elementHTML: element.outerHTML
+        });
+
+        // Update the price based on the element type
         if (isAmazonPriceElement(element)) {
           updateAmazonPrice(element, newPrice);
         } else if (isAliExpressPriceElement(element)) {
           updateAliExpressPrice(element, newPrice);
+        } else if (isSnapOnPriceElement(element)) {
+          updateSnapOnPrice(element, newPrice);
         } else {
           // For non-Amazon prices, use the standard formatting
           const formattedPrice = newPrice.toLocaleString('en-US', {
@@ -255,8 +321,28 @@ class PriceMarkupManager {
           this.indicatorElements.set(element, superscript);
         }
       }
+
+      // Calculate and update the total if we have marked-up prices
+      if (markedUpPrices.length > 0) {
+        const total = markedUpPrices.reduce((sum, price) => sum + price, 0);
+        console.log('Calculated total from marked-up prices:', total);
+        
+        // Find and update the total element
+        const totalElements = document.querySelectorAll('.ng-star-inserted');
+        for (const element of totalElements) {
+          if (element instanceof HTMLElement && 
+              element.textContent?.includes('Total:') && 
+              element.nextElementSibling?.classList.contains('ng-star-inserted')) {
+            const totalElement = element.nextElementSibling as HTMLElement;
+            if (isSnapOnPriceElement(totalElement)) {
+              updateSnapOnPrice(totalElement, total);
+            }
+          }
+        }
+      }
     } finally {
       this.isProcessing = false;
+      console.log('Finished price updates');
     }
   }
 
@@ -284,6 +370,13 @@ class PriceMarkupManager {
             if (spans[1]) spans[1].textContent = wholePart;
             if (spans[3]) spans[3].textContent = decimalPart;
           }
+        } else if (isSnapOnPriceElement(element)) {
+          // For Snap-on prices, restore the original price
+          const formattedPrice = originalPrice.toLocaleString('en-US', {
+            style: 'currency',
+            currency: 'USD',
+          });
+          element.textContent = formattedPrice;
         } else {
           // For non-Amazon prices, use the standard formatting
           const formattedPrice = originalPrice.toLocaleString('en-US', {
