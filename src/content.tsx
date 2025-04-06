@@ -95,25 +95,21 @@ class PriceMarkupManager {
     this.isProcessing = true;
 
     try {
-      console.log('Starting price element search...');
 
       // First find Amazon price elements
       const amazonElements = findAmazonPriceElements();
-      console.log('Found Amazon elements:', amazonElements.length);
       for (const element of amazonElements) {
         this.priceElements.add(element);
       }
 
       // Find AliExpress price elements
       const aliExpressElements = findAliExpressPriceElements();
-      console.log('Found AliExpress elements:', aliExpressElements.length);
       for (const element of aliExpressElements) {
         this.priceElements.add(element);
       }
 
       // Find Snap-on price elements
       const snapOnElements = findSnapOnPriceElements();
-      console.log('Found Snap-on elements:', snapOnElements.length);
       for (const element of snapOnElements) {
         this.priceElements.add(element);
       }
@@ -124,23 +120,11 @@ class PriceMarkupManager {
         {
           acceptNode: (node) => {
             if (!node.parentElement) {
-              console.log('Rejecting node: No parent element');
               return NodeFilter.FILTER_REJECT;
             }
             if (this.priceElements.has(node.parentElement)) {
-              console.log('Rejecting node: Already processed', node.parentElement);
               return NodeFilter.FILTER_REJECT;
             }
-
-            // Debug Snap-on EPC logic
-            const grandparent = node.parentElement.parentElement;
-            console.log('Node hierarchy:', {
-              node: node.textContent,
-              parent: node.parentElement?.className,
-              grandparent: grandparent?.className,
-              parentHTML: node.parentElement?.outerHTML,
-              grandparentHTML: grandparent?.outerHTML
-            });
 
             // Use the Snap-on EPC logic
             const snapOnResult = snapOnEpcUseCase(node);
