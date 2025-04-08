@@ -129,7 +129,6 @@ class PriceMarkupManager {
             // Use the Snap-on EPC logic
             const snapOnResult = snapOnEpcUseCase(node);
             if (snapOnResult === NodeFilter.FILTER_ACCEPT) {
-              console.log('Accepting node via Snap-on EPC:', node.textContent);
               return NodeFilter.FILTER_ACCEPT;
             }
 
@@ -141,11 +140,9 @@ class PriceMarkupManager {
 
             // Check if the combined text matches a price
             if (this.isPriceNode(combinedText)) {
-              console.log('Accepting node via price match:', combinedText);
               return NodeFilter.FILTER_ACCEPT;
             }
 
-            console.log('Skipping node:', node.textContent);
             return NodeFilter.FILTER_SKIP;
           },
         }
@@ -154,18 +151,13 @@ class PriceMarkupManager {
       let node = walker.nextNode();
       while (node) {
         if (node.parentElement) {
-          console.log('Adding price element:', {
-            text: node.textContent,
-            parentClass: node.parentElement.className,
-            parentHTML: node.parentElement.outerHTML
-          });
+         
           this.priceElements.add(node.parentElement);
         }
         node = walker.nextNode();
       }
     } finally {
       this.isProcessing = false;
-      console.log('Total price elements found:', this.priceElements.size);
     }
   }
 
@@ -240,12 +232,10 @@ class PriceMarkupManager {
 
     try {
       if (!this.settings.enabled) {
-        console.log('Extension disabled, restoring original prices');
         this.restoreOriginalPrices();
         return;
       }
 
-      console.log('Starting price updates for', this.priceElements.size, 'elements');
 
       // First, update all individual prices and collect their marked-up values
       const markedUpPrices: number[] = [];
@@ -255,10 +245,8 @@ class PriceMarkupManager {
         if (!originalPrice) {
           const price = this.extractPrice(element);
           if (!price) {
-            console.log('Skipping element - no price found:', element.outerHTML);
             continue;
           }
-          console.log('Found new price:', price, 'for element:', element.outerHTML);
           this.originalPrices.set(element, price);
         }
 
@@ -274,13 +262,6 @@ class PriceMarkupManager {
 
         // Store the marked-up price for total calculation
         markedUpPrices.push(newPrice);
-
-        console.log('Updating price:', {
-          original: price,
-          markup: markup,
-          newPrice: newPrice,
-          elementHTML: element.outerHTML
-        });
 
         // Update the price based on the element type
         if (isAmazonPriceElement(element)) {
@@ -309,7 +290,6 @@ class PriceMarkupManager {
       // Calculate and update the total if we have marked-up prices
       if (markedUpPrices.length > 0) {
         const total = markedUpPrices.reduce((sum, price) => sum + price, 0);
-        console.log('Calculated total from marked-up prices:', total);
         
         // Find and update the total element
         const totalElements = document.querySelectorAll('.ng-star-inserted');
@@ -326,7 +306,6 @@ class PriceMarkupManager {
       }
     } finally {
       this.isProcessing = false;
-      console.log('Finished price updates');
     }
   }
 
