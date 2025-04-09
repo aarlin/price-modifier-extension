@@ -1,5 +1,6 @@
 # Markup Matrix
 
+<div align="center">
 <picture>
     <source media="(prefers-color-scheme: dark)" srcset="./public/markupmatrix.png" />
     <source media="(prefers-color-scheme: light)" srcset="./public/markupmatrix.png" />
@@ -8,7 +9,6 @@
 
 A Chrome extension that automatically applies customizable markups to prices on various e-commerce websites including Amazon, AliExpress, and Snap-on EPC.
 
-<div align="center">
 ![](https://img.shields.io/badge/React-61DAFB?style=flat-square&logo=react&logoColor=black)
 ![](https://img.shields.io/badge/Typescript-3178C6?style=flat-square&logo=typescript&logoColor=white)
 ![](https://badges.aleen42.com/src/vitejs.svg)
