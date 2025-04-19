@@ -3,8 +3,62 @@ import { Settings } from "./types";  // Import types
 import { findAmazonPriceElements, isAmazonPriceElement, extractAmazonPrice, updateAmazonPrice } from "./utils/amazonPrice";
 import { findAliExpressPriceElements, isAliExpressPriceElement, extractAliExpressPrice, updateAliExpressPrice } from "./utils/aliExpressPrice";
 import { findSnapOnPriceElements, isSnapOnPriceElement, extractSnapOnPrice, updateSnapOnPrice } from "./utils/snapOnPrice";
+import { LOADING, PRICE, MATRIX, CURRENCY } from "./constants";
 
-// Remove Tippy imports since we're using native tooltips
+// Add loading overlay styles
+const loadingOverlayStyles = `
+  .markup-matrix-loading-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(255, 255, 255, 0.8);
+    backdrop-filter: blur(4px);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 9999;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+  }
+
+  .markup-matrix-loading-overlay.visible {
+    opacity: 1;
+  }
+
+  .markup-matrix-loading-spinner {
+    width: 40px;
+    height: 40px;
+    border: 4px solid #f3f3f3;
+    border-top: 4px solid #3498db;
+    border-radius: 50%;
+    animation: markup-matrix-spin 1s linear infinite;
+  }
+
+  @keyframes markup-matrix-spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+  }
+
+  html {
+    scroll-behavior: smooth;
+  }
+`;
+
+// Add loading overlay element
+const loadingOverlay = document.createElement('div');
+loadingOverlay.className = 'markup-matrix-loading-overlay';
+const spinner = document.createElement('div');
+spinner.className = 'markup-matrix-loading-spinner';
+loadingOverlay.appendChild(spinner);
+document.body.appendChild(loadingOverlay);
+
+// Add styles to document
+const styleElement = document.createElement('style');
+styleElement.textContent = loadingOverlayStyles;
+document.head.appendChild(styleElement);
 
 class PriceMarkupManager {
   private settings: Settings = {
@@ -13,14 +67,7 @@ class PriceMarkupManager {
     flatRate: 0,
     percentage: 0,
     showIndicator: true,
-    matrixRates: [
-      { min: 0, max: 50, rate: 5 },
-      { min: 50.01, max: 100, rate: 10 },
-      { min: 100.01, max: 250, rate: 15 },
-      { min: 250.01, max: 500, rate: 20 },
-      { min: 500.01, max: 1000, rate: 25 },
-      { min: 1000.01, max: null, rate: 30 },
-    ],
+    matrixRates: MATRIX.DEFAULT_RATES,
   };
 
   private priceElements: Set<HTMLElement> = new Set();
@@ -28,9 +75,24 @@ class PriceMarkupManager {
   private indicatorElements: Map<HTMLElement, HTMLElement> = new Map();
   private observer: MutationObserver | null = null;
   private updateTimeout: number | null = null;
+  private loadingTimeout: number | null = null;
   private isProcessing = false;
+  private isInitialLoad = true;
+  private loadingStartTime = 0;
 
   constructor() {
+    // Only show loading and scroll if extension is enabled
+    if (this.settings.enabled) {
+      loadingOverlay.classList.add('visible');
+      this.loadingStartTime = Date.now();
+      
+      // Auto scroll to bottom on initialization
+      window.scrollTo({
+        top: document.documentElement.scrollHeight,
+        behavior: 'auto'
+      });
+    }
+    
     this.initialize();
   }
 
@@ -38,19 +100,24 @@ class PriceMarkupManager {
     await this.loadSettings();
     this.setupMessageListener();
     this.startPriceObserver();
+    // Initial price update
+    if (this.settings.enabled) {
+      this.findPriceElements();
+      this.updatePrices();
+    } else {
+      this.hideLoading();
+    }
   }
 
   private async loadSettings() {
     const result = await chrome.storage.sync.get(['settings']);
     if (result.settings) {
-      // Ensure matrixRates is an array
       this.settings = {
         ...result.settings,
         matrixRates: Array.isArray(result.settings.matrixRates) 
           ? result.settings.matrixRates 
           : this.settings.matrixRates
       };
-      this.updatePrices();
     }
   }
 
@@ -58,35 +125,38 @@ class PriceMarkupManager {
     chrome.runtime.onMessage.addListener((message: { type: string; settings: Settings }) => {
       if (message.type === 'SETTINGS_UPDATED') {
         this.settings = message.settings;
-        this.updatePrices();
+        if (this.settings.enabled) {
+          this.updatePrices();
+        } else {
+          this.restoreOriginalPrices();
+        }
       }
     });
   }
 
   private startPriceObserver() {
-    // Stop any existing observer
     if (this.observer) {
       this.observer.disconnect();
     }
 
-    // Create a new observer with optimized settings
     this.observer = new MutationObserver(() => {
-      // Debounce the update to prevent rapid consecutive calls
-      if (this.updateTimeout) {
-        window.clearTimeout(this.updateTimeout);
+      if (!this.isProcessing && this.settings.enabled) {
+        if (this.updateTimeout) {
+          window.clearTimeout(this.updateTimeout);
+        }
+
+        this.updateTimeout = window.setTimeout(() => {
+          this.findPriceElements();
+          this.updatePrices();
+        }, LOADING.DEBOUNCE_TIME_MS);
       }
-      this.updateTimeout = window.setTimeout(() => {
-        this.findPriceElements();
-        this.updatePrices();
-      }, 100); // Wait 100ms before processing changes
     });
 
-    // Observe only necessary changes
     this.observer.observe(document.body, {
       childList: true,
       subtree: true,
       characterData: true,
-      attributes: false, // We don't need attribute changes
+      attributes: false,
     });
   }
 
@@ -95,7 +165,6 @@ class PriceMarkupManager {
     this.isProcessing = true;
 
     try {
-
       // First find Amazon price elements
       const amazonElements = findAmazonPriceElements();
       for (const element of amazonElements) {
@@ -226,6 +295,30 @@ class PriceMarkupManager {
     return 0; // Default to no markup if no range matches
   }
 
+  private hideLoading() {
+    const elapsedTime = Date.now() - this.loadingStartTime;
+    const remainingTime = Math.max(0, LOADING.MIN_DISPLAY_TIME_MS - elapsedTime);
+
+    if (this.loadingTimeout) {
+      clearTimeout(this.loadingTimeout);
+    }
+
+    this.loadingTimeout = window.setTimeout(() => {
+      loadingOverlay.classList.remove('visible');
+      this.loadingTimeout = null;
+    }, remainingTime);
+  }
+
+  private isElementInView(element: HTMLElement): boolean {
+    const rect = element.getBoundingClientRect();
+    return (
+      rect.top >= 0 &&
+      rect.left >= 0 &&
+      rect.bottom <= (window.innerHeight || document.documentElement.clientHeight) &&
+      rect.right <= (window.innerWidth || document.documentElement.clientWidth)
+    );
+  }
+
   private updatePrices() {
     if (this.isProcessing) return;
     this.isProcessing = true;
@@ -236,6 +329,24 @@ class PriceMarkupManager {
         return;
       }
 
+      // Show loading and scroll when we're about to update prices
+      if (this.isInitialLoad) {
+        loadingOverlay.classList.add('visible');
+        this.loadingStartTime = Date.now();
+        
+        // Find the first price element that's in view
+        const visiblePriceElement = Array.from(this.priceElements).find(element => 
+          this.isElementInView(element)
+        );
+
+        if (visiblePriceElement) {
+          // Instant scroll to bottom
+          window.scrollTo({
+            top: document.documentElement.scrollHeight,
+            behavior: 'auto'
+          });
+        }
+      }
 
       // First, update all individual prices and collect their marked-up values
       const markedUpPrices: number[] = [];
@@ -255,10 +366,10 @@ class PriceMarkupManager {
         const markup = this.calculateMarkup(price);
         
         // Convert to cents, add, then convert back to dollars to avoid floating point issues
-        const priceInCents = Math.round(price * 100);
-        const markupInCents = Math.round(markup * 100);
+        const priceInCents = Math.round(price * PRICE.CENTS_MULTIPLIER);
+        const markupInCents = Math.round(markup * PRICE.CENTS_MULTIPLIER);
         const newPriceInCents = priceInCents + markupInCents;
-        const newPrice = newPriceInCents / 100;
+        const newPrice = newPriceInCents / PRICE.CENTS_MULTIPLIER;
 
         // Store the marked-up price for total calculation
         markedUpPrices.push(newPrice);
@@ -271,10 +382,11 @@ class PriceMarkupManager {
         } else if (isSnapOnPriceElement(element)) {
           updateSnapOnPrice(element, newPrice);
         } else {
-          // For non-Amazon prices, use the standard formatting
-          const formattedPrice = newPrice.toLocaleString('en-US', {
+          const formattedPrice = newPrice.toLocaleString(CURRENCY.LOCALE, {
             style: 'currency',
-            currency: 'USD',
+            currency: CURRENCY.CURRENCY,
+            minimumFractionDigits: CURRENCY.MIN_FRACTION_DIGITS,
+            maximumFractionDigits: CURRENCY.MAX_FRACTION_DIGITS,
           });
           element.textContent = formattedPrice;
         }
@@ -304,6 +416,13 @@ class PriceMarkupManager {
           }
         }
       }
+
+      // Hide loading after all price updates are complete
+      if (this.isInitialLoad) {
+        this.hideLoading();
+        this.isInitialLoad = false;
+      }
+
     } finally {
       this.isProcessing = false;
     }
@@ -315,7 +434,7 @@ class PriceMarkupManager {
       if (originalPrice) {
         if (isAmazonPriceElement(element)) {
           // For Amazon prices, restore the original HTML structure
-          const formattedPrice = originalPrice.toFixed(2);
+          const formattedPrice = originalPrice.toFixed(PRICE.DECIMAL_PLACES);
           const [wholePart, fractionPart] = formattedPrice.split('.');
           
           const wholeElement = element.querySelector('.a-price-whole') as HTMLElement;
@@ -325,7 +444,7 @@ class PriceMarkupManager {
           if (fractionElement) fractionElement.textContent = fractionPart;
         } else if (isAliExpressPriceElement(element)) {
           // For AliExpress prices, restore the original HTML structure
-          const formattedPrice = originalPrice.toFixed(2);
+          const formattedPrice = originalPrice.toFixed(PRICE.DECIMAL_PLACES);
           const [wholePart, decimalPart] = formattedPrice.split('.');
           
           const spans = element.querySelectorAll('span');
@@ -335,16 +454,19 @@ class PriceMarkupManager {
           }
         } else if (isSnapOnPriceElement(element)) {
           // For Snap-on prices, restore the original price
-          const formattedPrice = originalPrice.toLocaleString('en-US', {
+          const formattedPrice = originalPrice.toLocaleString(CURRENCY.LOCALE, {
             style: 'currency',
-            currency: 'USD',
+            currency: CURRENCY.CURRENCY,
+            minimumFractionDigits: CURRENCY.MIN_FRACTION_DIGITS,
+            maximumFractionDigits: CURRENCY.MAX_FRACTION_DIGITS,
           });
           element.textContent = formattedPrice;
         } else {
-          // For non-Amazon prices, use the standard formatting
-          const formattedPrice = originalPrice.toLocaleString('en-US', {
+          const formattedPrice = originalPrice.toLocaleString(CURRENCY.LOCALE, {
             style: 'currency',
-            currency: 'USD',
+            currency: CURRENCY.CURRENCY,
+            minimumFractionDigits: CURRENCY.MIN_FRACTION_DIGITS,
+            maximumFractionDigits: CURRENCY.MAX_FRACTION_DIGITS,
           });
           element.textContent = formattedPrice;
         }
